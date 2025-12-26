@@ -1,0 +1,36 @@
+name: build-and-bundle
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        uses: abatilo/actions-poetry@v4
+        with:
+          poetry-version: "1.8.3"
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --with dev
+
+      - name: Build Windows executable
+        run: poetry run pyinstaller --noconfirm --windowed --name ClipboardImageSaver clipboard_manager/__main__.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClipboardImageSaver-windows
+          path: dist/ClipboardImageSaver/**
+
