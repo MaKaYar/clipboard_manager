@@ -1,4 +1,4 @@
-name: build-and-bundle
+name: build-and-release
 
 on:
   push:
@@ -28,9 +28,30 @@ jobs:
       - name: Build Windows executable
         run: poetry run pyinstaller --noconfirm --windowed --name ClipboardImageSaver clipboard_manager/__main__.py
 
+      - name: Zip build output
+        run: Compress-Archive -Path dist/ClipboardImageSaver/* -DestinationPath dist/ClipboardImageSaver.zip -Force
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ClipboardImageSaver-windows
-          path: dist/ClipboardImageSaver/**
+          path: dist/ClipboardImageSaver.zip
+
+  release:
+    needs: windows-build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ClipboardImageSaver-windows
+          path: artifacts
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release ${{ github.run_number }}
+          files: artifacts/ClipboardImageSaver.zip
 
