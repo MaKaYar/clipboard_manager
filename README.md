@@ -18,6 +18,7 @@ Desktop helper that watches the Windows clipboard for images (screenshots, copie
 - Windows (clipboard access uses `pywin32`).
 - Python `>=3.11,<3.14`.
 - Poetry 1.8.x (for dependency management and scripting).
+- Optional: Google Sheets/Drive sync (can be configured via GUI; service account or user OAuth).
 
 ## Quick start
 ```powershell
@@ -37,6 +38,29 @@ The packaged app will be under `dist/ClipboardImageSaver/`; the workflow also zi
 
 ## CI/CD
 - `.github/workflows/build.yml` builds on Windows, zips the PyInstaller output, and on pushes to `main`/`master` creates a GitHub release (tag `v${{ github.run_number }}`) with the zip attached. Requires `contents: write` permissions on `GITHUB_TOKEN`.
+
+## Google Sheets auto-sync (optional)
+After each saved image, the app can upload it to Google Drive and place it into a cell (as an `IMAGE()` formula) in the first cell whose text contains a search term (default: `add`) on a chosen sheet.
+
+Configure via GUI:
+- Click “Google sync…” in the app, then set:
+  - Enable sync
+  - Auth mode: Service account or User OAuth
+  - For service: service account JSON path
+  - For OAuth: client_secret.json path; token file path (created/refreshed on first login)
+  - Spreadsheet ID
+  - Sheet name
+  - Search term (substring to find)
+  - Drive folder ID (optional)
+- Settings persist to `google_sync.json`. OAuth tokens save to `google_token.json` by default (both git-ignored).
+
+Env fallback (if you prefer):
+- Service: `GOOGLE_APPLICATION_CREDENTIALS`, `GOOGLE_SPREADSHEET_ID`, `GOOGLE_SHEET_NAME`, `GOOGLE_SEARCH_TERM`, `GOOGLE_DRIVE_FOLDER_ID`, `GOOGLE_AUTH_MODE=service`.
+- OAuth: `GOOGLE_CLIENT_SECRET_JSON`, `GOOGLE_TOKEN_FILE`, `GOOGLE_SPREADSHEET_ID`, `GOOGLE_SHEET_NAME`, `GOOGLE_SEARCH_TERM`, `GOOGLE_DRIVE_FOLDER_ID`, `GOOGLE_AUTH_MODE=oauth`.
+
+Notes:
+- The service account must have edit access to the spreadsheet and upload access to the chosen Drive folder.
+- Uploaded files are set to `anyone with the link can read` (if permitted) so the `IMAGE()` formula can render.
 
 ## Project layout
 - `clipboard_manager/` — application package (`app.py`, `clipboard.py`, configs, entrypoint).

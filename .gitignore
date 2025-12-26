@@ -15,5 +15,7 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+google_sync.json
+google_token.json
 
 
