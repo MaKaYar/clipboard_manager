@@ -6,12 +6,12 @@ authors = ["Your Name <you@example.com>"]
 packages = [{ include = "clipboard_manager" }]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.14"
 pillow = "^10.4.0"
 pywin32 = "^306"
 
 [tool.poetry.group.dev.dependencies]
-pyinstaller = "^6.11.0"
+pyinstaller = { version = "^6.11.0", python = ">=3.11,<3.14" }
 
 [tool.poetry.scripts]
 clipboard-manager = "clipboard_manager.__main__:main"
