@@ -8,13 +8,11 @@ Desktop helper that watches the Windows clipboard for images (screenshots, copie
 - Start/stop controls, live log, and status updates.
 - Windows-friendly: uses `pywin32` and produces a GUI-only executable (no console).
 
-## Screenshots (placeholders)
-Replace these inline placeholders with real screenshots when you have them. You can also drop images under `docs/images/` and link to them instead.
-
+## Screenshots
 - UI preview  
-  ![Clipboard Image Saver UI](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y8Y3W4AAAAASUVORK5CYII=)
+  ![Clipboard Image Saver UI](docs/main.png)
 - History dialog  
-  ![Folder history dialog](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAZ8dR64AAAAASUVORK5CYII=)
+  ![Folder history dialog](docs/history.png)
 
 ## Requirements
 - Windows (clipboard access uses `pywin32`).
@@ -47,7 +45,7 @@ The packaged app will be under `dist/ClipboardImageSaver/`; the workflow also zi
 - `main.py` — legacy entrypoint that delegates to the package.
 
 ## Customizing screenshots
-- Capture real UI images, place them in `docs/images/`, and update the links in the Screenshots section, e.g. `![UI](docs/images/ui.png)`.
+- Replace `docs/main.png` and `docs/history.png` with updated captures if the UI changes.
 - For richer docs, consider adding a short GIF showing start/stop and auto-save behavior.
 
 ## Troubleshooting
