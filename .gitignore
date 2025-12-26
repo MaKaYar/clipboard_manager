@@ -17,5 +17,6 @@ dist/
 .vscode/
 google_sync.json
 google_token.json
+folder_history.json
 
 
