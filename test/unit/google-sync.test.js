@@ -240,7 +240,7 @@ test('module does not load electron', () => {
 
 test('oauth: missing client secret file gives clear error', async () => {
   const gs = new GoogleSync({ ...SETTINGS, clientSecretFile: path.join(tmp(), 'missing.json') }, { tokenPath: path.join(tmp(), 't.json') });
-  await assert.rejects(gs.init(), /client secret/i);
+  await assert.rejects(gs.init(), /client_secret/i);
 });
 
 test('service: missing key file gives clear error', async () => {

@@ -74,7 +74,7 @@ body{background:var(--win);color:var(--fg);font:13px/1.45 var(--body);overflow:h
 .log summary{padding:9px 20px;cursor:pointer;color:var(--muted);font-size:12px;list-style:none;display:flex;gap:8px}
 .log summary::-webkit-details-marker{display:none}
 .log summary::before{content:"▸"} .log[open] summary::before{content:"▾"}
-.log pre{margin:0;padding:4px 20px 12px;font:12px/1.7 var(--mono);color:var(--muted);white-space:pre-wrap;max-height:150px;overflow-y:auto}
+.log pre{margin:0;padding:4px 20px 12px;font:12px/1.7 var(--mono);color:var(--muted);white-space:pre-wrap;max-height:min(150px,20vh);overflow-y:auto}
 .log .ok{color:var(--ok)} .log .error{color:var(--bad)}
 
 .menu-wrap{position:relative}

@@ -79,7 +79,9 @@
     const meta = el('span', 'meta');
     meta.append(el('span', 'name'), el('span', 'badge'), el('span', 't'));
     card.append(img, meta);
-    card.addEventListener('click', () => api.openImage(item.path));
+    // detail > 1: the 2nd click of a double-click (Explorer habit) must not open a second viewer.
+    // Failures are logged to the journal by main; catch only silences the rejected promise.
+    card.addEventListener('click', (e) => { if (e.detail <= 1) api.openImage(item.path).catch(() => {}); });
     card.addEventListener('contextmenu', (e) => { e.preventDefault(); openCtx(item.path, e.clientX, e.clientY); });
     card.addEventListener('keydown', (e) => {
       if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
@@ -114,7 +116,9 @@
       return card;
     });
     for (const p of cards.keys()) if (!keep.has(p)) cards.delete(p);
+    const focused = gallery.contains(document.activeElement) ? document.activeElement : null;
     gallery.replaceChildren(...nodes);
+    if (focused && focused.isConnected) focused.focus({ preventScroll: true }); // re-insert drops focus
 
     gallery.hidden = !s.folder || !items.length;
     $('emptyNoFolder').hidden = !!s.folder;
@@ -164,7 +168,8 @@
     if (!b || b.disabled) return;
     const p = ctxPath;
     closeMenus();
-    ({ open: api.openImage, show: api.showInFolder, copy: api.copyImage, retry: api.retrySync }[b.dataset.act])(p);
+    ({ open: api.openImage, show: api.showInFolder, copy: api.copyImage, retry: api.retrySync }[b.dataset.act])(p)
+      .catch(() => {}); // main logs the failure to the journal
   });
 
   function openRecent() {
@@ -202,11 +207,17 @@
       const next = items[(i + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length];
       if (next) next.focus();
     });
+    // Tab out of a menu closes it (without pulling focus back); null = window blur, handled below
+    m.addEventListener('focusout', (e) => {
+      if (e.relatedTarget && !m.contains(e.relatedTarget) && e.relatedTarget !== $('recentBtn')) { menuReturn = null; closeMenus(); }
+    });
   }
 
   document.addEventListener('mousedown', (e) => { if (!e.target.closest('.menu, #recentBtn')) closeMenus(); });
   window.addEventListener('blur', () => closeMenus());
   window.addEventListener('resize', () => closeMenus());
+  // the context menu is position:fixed: after a scroll it would sit over a different card
+  document.querySelector('.content').addEventListener('scroll', () => closeMenus());
 
   // ---------- journal ----------
   const logEl = $('log');
@@ -270,7 +281,12 @@
     if (r && r.ok === false && r.error) addLog({ ts: Date.now(), level: 'error', text: r.error });
     return r;
   }
-  $('toggleRun').addEventListener('click', () => act(state && state.running ? api.stop() : api.start()));
+  let toggling = false; // clicks before the new state arrives would repeat the same action
+  $('toggleRun').addEventListener('click', async () => {
+    if (toggling) return;
+    toggling = true;
+    try { await act(state && state.running ? api.stop() : api.start()); } finally { toggling = false; }
+  });
   $('changeFolder').addEventListener('click', () => api.pickFolder());
   $('pickFolderEmpty').addEventListener('click', () => api.pickFolder());
   $('openFolder').addEventListener('click', () => api.openFolder());

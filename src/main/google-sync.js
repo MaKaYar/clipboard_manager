@@ -86,7 +86,7 @@ class GoogleSync {
 
   async _oauth() {
     const secretFile = this.settings.clientSecretFile;
-    if (!secretFile || !fs.existsSync(secretFile)) throw new Error(`OAuth client secret file not found: ${secretFile || '(не указан)'}`);
+    if (!secretFile || !fs.existsSync(secretFile)) throw new Error(`Не найден файл client_secret: ${secretFile || '(не указан)'}`);
     const secret = readJson(secretFile);
     const c = secret.installed || secret.web || secret;
     const { OAuth2Client } = require('google-auth-library');

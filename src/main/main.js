@@ -17,7 +17,7 @@ function run() {
   const { ClipboardWatcher } = require('./watcher');
   const settingsLib = require('./settings');
   const { listRecent } = require('./gallery');
-  const { GoogleSync, normalizeToken } = require('./google-sync');
+  const { GoogleSync, normalizeToken, parseSpreadsheetId } = require('./google-sync');
   const { initUpdater } = require('./updater');
 
   const ICONS = path.join(__dirname, '..', '..', 'build', 'icons');
@@ -33,6 +33,7 @@ function run() {
   let googleStatus = 'off';
   let googleError;
   let googleGen = 0;
+  let dirSig = ''; // img_N names as of the last getState(), for the outside-change poll
   let watchError; // last save failure, cleared on the next save or start/stop
   let updateState;
   let updater = { check: async () => {}, install() {} };
@@ -66,6 +67,7 @@ function run() {
     const folder = settings.folder;
     // ponytail: stats every img in the folder on each push; count via readdir if folders get huge
     const all = listRecent(folder, Infinity);
+    dirSig = all.map((g) => g.filename).sort().join('|');
     return {
       settings,
       running: watcher.running,
@@ -89,14 +91,14 @@ function run() {
     if (typeof p !== 'string' || !p || !settings.folder) return false;
     const rel = path.relative(path.resolve(settings.folder), path.resolve(p));
     // only the gallery's own images: IPC must not open/upload arbitrary files from the folder
-    return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel) && /^img_d+.png$/i.test(path.basename(p));
+    return !!rel && !rel.startsWith('..') && !path.isAbsolute(rel) && /^img_\d+\.png$/.test(path.basename(p));
   }
 
   // ---------- watcher ----------
   function startWatching() {
     if (!settings.folder) return { ok: false, error: 'Папка не выбрана' };
+    watchError = undefined; // before start(): it reports a failed mkdir synchronously
     watcher.start(settings.folder);
-    watchError = undefined;
     log('info', `Отслеживание: ${settings.folder}`);
     pushState();
     return { ok: true };
@@ -121,6 +123,21 @@ function run() {
     pushState();
   });
   watcher.on('error', ({ message }) => { watchError = message; log('error', message); pushState(); });
+
+  // Explorer adds/deletes img_N files: refresh the gallery so cards never point at missing files.
+  // ponytail: readdir poll (no fs.watch: its handle blocks recreating a deleted folder on Windows)
+  setInterval(() => {
+    if (!settings?.folder) return;
+    let sig = '';
+    try { sig = fs.readdirSync(settings.folder).filter((n) => /^img_\d+\.png$/.test(n)).sort().join('|'); } catch { /* missing */ }
+    if (sig !== dirSig) pushState();
+  }, 1000);
+
+  async function openFolder() {
+    if (!settings.folder) return;
+    const err = await shell.openPath(path.normalize(settings.folder)); // reports failure as a string, never rejects
+    if (err) log('error', `Не удалось открыть папку: ${err}`);
+  }
 
   function setFolder(p) {
     if (typeof p !== 'string' || !path.isAbsolute(p)) throw new Error('Некорректный путь');
@@ -185,7 +202,7 @@ function run() {
       width: 960, height: 680, minWidth: 760, minHeight: 520,
       show: false,
       autoHideMenuBar: true,
-      backgroundColor: nativeTheme.shouldUseDarkColors ? '#11161c' : '#eef1f4',
+      backgroundColor: winBg(),
       icon: path.join(ICONS, 'app.png'),
       webPreferences: {
         preload: path.join(__dirname, '..', 'preload.js'),
@@ -199,6 +216,9 @@ function run() {
     win.on('closed', () => { win = null; });
     win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
   }
+
+  function winBg() { return nativeTheme.shouldUseDarkColors ? '#151b22' : '#f7f9fb'; } // = --win in styles.css
+  nativeTheme.on('updated', () => { if (win && !win.isDestroyed()) win.setBackgroundColor(winBg()); });
 
   function showWindow() {
     if (!win) return createWindow();
@@ -215,7 +235,7 @@ function run() {
     tray.setContextMenu(Menu.buildFromTemplate([
       { label: 'Открыть', click: showWindow },
       on ? { label: 'Пауза', click: stopWatching } : { label: 'Старт', click: startWatching, enabled: !!settings.folder },
-      { label: 'Открыть папку', click: () => shell.openPath(settings.folder), enabled: !!settings.folder },
+      { label: 'Открыть папку', click: openFolder, enabled: !!settings.folder },
       { type: 'separator' },
       { label: 'Выход', click: () => app.quit() },
     ]));
@@ -252,9 +272,15 @@ function run() {
 
   // ---------- IPC ----------
   const handle = (name, fn) => ipcMain.handle(name, (_e, ...args) => fn(...args));
+  // failures go to the journal: a card action must never fail silently
   const insideOnly = (fn) => async (p) => {
-    if (!isInside(p)) throw new Error('Путь вне папки сохранения');
-    return fn(p);
+    try {
+      if (!isInside(p)) throw new Error('Путь вне папки сохранения');
+      return await fn(p);
+    } catch (e) {
+      log('error', `${typeof p === 'string' ? path.basename(p) : String(p)}: ${e.message}`);
+      throw e;
+    }
   };
 
   function registerIpc() {
@@ -272,8 +298,11 @@ function run() {
       if (!settings.recentFolders.includes(p)) throw new Error('Папка не из списка недавних');
       setFolder(p);
     });
-    handle('openFolder', async () => { if (settings.folder) await shell.openPath(settings.folder); });
-    handle('openImage', insideOnly(async (p) => { await shell.openPath(p); }));
+    handle('openFolder', openFolder);
+    handle('openImage', insideOnly(async (p) => {
+      const err = await shell.openPath(p); // reports failure as a string, never rejects
+      if (err) throw new Error(`Не удалось открыть: ${err}`);
+    }));
     handle('showInFolder', insideOnly(async (p) => { shell.showItemInFolder(p); }));
     handle('copyImage', insideOnly(async (p) => {
       const blob = new Blob([fs.readFileSync(p)], { type: 'image/png' });
@@ -302,6 +331,7 @@ function run() {
             g[k] = k === 'enabled' ? !!partial.google[k] : String(partial.google[k] ?? '');
           }
           g.authMode = g.authMode === 'service' ? 'service' : 'oauth';
+          g.spreadsheetId = parseSpreadsheetId(g.spreadsheetId); // a pasted sheet URL is stored as its ID
           settings.google = g;
         }
         persist();
