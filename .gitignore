@@ -1,22 +1,13 @@
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-.Python
-env/
-.env
-.venv/
-build/
+node_modules/
 dist/
-*.spec
 *.log
-.mypy_cache/
-.pytest_cache/
 .DS_Store
 .idea/
 .vscode/
+test-results/
+# legacy local secrets from the Python version
 google_sync.json
+_google_sync.json
 google_token.json
 folder_history.json
-
-
+dist-upd/

@@ -1,0 +1,63 @@
+{
+  "name": "clipboard-image-saver",
+  "productName": "Clipboard Image Saver",
+  "version": "1.0.0",
+  "description": "Saves images from the Windows clipboard to a folder, optionally into Google Sheets",
+  "author": "Makariy Vasyuta",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test \"test/unit/*.test.js\"",
+    "test:e2e": "node --test \"test/e2e/*.test.js\"",
+    "dist": "electron-builder --win --publish never"
+  },
+  "build": {
+    "appId": "io.github.makayar.clipboard-image-saver",
+    "productName": "Clipboard Image Saver",
+    "files": [
+      "src/**/*",
+      "build/icons/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "artifactName": "ClipboardImageSaver-Setup-${version}.${ext}",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Clipboard Image Saver"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "MaKaYar",
+      "repo": "clipboard_manager",
+      "releaseType": "release"
+    },
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false
+    }
+  },
+  "devDependencies": {
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0",
+    "playwright": "^1.65.0"
+  },
+  "dependencies": {
+    "@googleapis/drive": "^27.0.0",
+    "@googleapis/sheets": "^18.1.2",
+    "electron-updater": "^6.8.11",
+    "google-auth-library": "^11.3.3"
+  }
+}

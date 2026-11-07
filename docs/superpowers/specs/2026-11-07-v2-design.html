@@ -1,0 +1,243 @@
+<title>Clipboard Image Saver 2.0</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: narrow reading column for the proposal, wide stage for the window mockup */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --sunken:#e4e8ed; --line:#d3d9e0;
+  --fg:#18202a; --muted:#5b6673; --accent:#1f6f8b; --accent-fg:#ffffff;
+  --ok:#2f8a57; --warn:#b7791f; --bad:#c2453b;
+  --win:#f7f9fb; --winbar:#ffffff;
+  --display:"Unbounded", "Segoe UI", sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --surface:#1a2129; --sunken:#0d1217; --line:#2a333d;
+  --fg:#e3e8ee; --muted:#93a0ad; --accent:#4fb0cf; --accent-fg:#06222c;
+  --ok:#5cc28a; --warn:#e0a84a; --bad:#ef7a6f; --win:#151b22; --winbar:#1c242d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --surface:#1a2129; --sunken:#0d1217; --line:#2a333d;
+  --fg:#e3e8ee; --muted:#93a0ad; --accent:#4fb0cf; --accent-fg:#06222c;
+  --ok:#5cc28a; --warn:#e0a84a; --bad:#ef7a6f; --win:#151b22; --winbar:#1c242d; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:15px/1.6 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 64px}
+.col{max-width:920px;margin:0 auto;display:grid;gap:40px}
+h1{font:700 clamp(26px,4vw,38px)/1.15 var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h2{font:500 20px/1.3 var(--display);margin:0 0 12px;text-wrap:balance}
+h3{font:600 15px/1.4 var(--body);margin:0 0 6px}
+p{margin:0 0 10px;max-width:68ch}
+.eyebrow{font:500 12px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.lead{color:var(--muted);font-size:17px}
+code,.mono{font-family:var(--mono);font-size:.9em}
+ul{margin:0;padding-left:20px} li{margin:2px 0}
+.muted{color:var(--muted)}
+
+/* ---------- window mockup ---------- */
+.stage{background:var(--sunken);border-radius:14px;padding:24px;overflow-x:auto}
+.win{min-width:760px;max-width:980px;margin:0 auto;background:var(--win);border:1px solid var(--line);border-radius:10px;
+  box-shadow:0 20px 50px rgba(10,20,30,.18);overflow:hidden;font-size:13px}
+.titlebar{display:flex;align-items:center;height:34px;padding-left:14px;background:var(--winbar);border-bottom:1px solid var(--line);gap:8px;color:var(--muted);font-size:12px}
+.titlebar .ctl{margin-left:auto;display:flex}
+.titlebar .ctl span{width:44px;text-align:center;line-height:34px}
+.update{display:flex;align-items:center;gap:12px;padding:8px 16px;background:color-mix(in srgb,var(--accent) 12%,var(--win));border-bottom:1px solid var(--line)}
+.update b{font-weight:600}
+.update .btn{margin-left:auto}
+.top{display:flex;align-items:center;gap:16px;padding:16px 20px}
+.brand{font:700 15px var(--display);letter-spacing:-.01em}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-weight:500;font-size:12px;border:1px solid var(--line);background:var(--surface)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 25%,transparent)}
+.pill.ok{color:var(--ok)} .pill.sync{color:var(--muted)}
+.top .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{font:500 13px var(--body);padding:7px 14px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;white-space:nowrap}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.big{padding:9px 18px;font-weight:600}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.icon{display:inline-block;width:14px;text-align:center}
+.folder{display:flex;align-items:center;gap:10px;margin:0 20px;padding:10px 12px;background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.folder .path{font-family:var(--mono);font-size:12.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder .lbl{color:var(--muted);font-size:12px}
+.stats{display:flex;gap:24px;padding:14px 20px 6px;color:var(--muted);font-size:12px}
+.stats b{color:var(--fg);font-size:15px;font-variant-numeric:tabular-nums;font-weight:600;margin-right:4px}
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:10px 20px 16px}
+.shot{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.shot.new{outline:2px solid var(--accent);outline-offset:-1px}
+.thumb{aspect-ratio:16/10;max-width:100%;position:relative}
+.thumb i{position:absolute;display:block;border-radius:3px}
+.meta{display:flex;align-items:center;gap:6px;padding:7px 9px;font-size:12px}
+.meta .name{font-family:var(--mono);font-weight:500}
+.meta .t{color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.badge{font-size:11px;padding:1px 6px;border-radius:4px;font-weight:500}
+.b-ok{color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,transparent)}
+.b-wait{color:var(--warn);background:color-mix(in srgb,var(--warn) 16%,transparent)}
+.b-bad{color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,transparent)}
+.log{border-top:1px solid var(--line);background:var(--surface)}
+.log summary{padding:9px 20px;cursor:pointer;color:var(--muted);font-size:12px;list-style:none;display:flex;gap:8px}
+.log summary::before{content:"▸"} .log[open] summary::before{content:"▾"}
+.log pre{margin:0;padding:4px 20px 12px;font:12px/1.7 var(--mono);color:var(--muted);white-space:pre-wrap}
+.log pre em{font-style:normal;color:var(--ok)} .log pre s{text-decoration:none;color:var(--bad)}
+
+/* settings drawer mockup */
+.split{display:grid;grid-template-columns:1fr 340px}
+.drawer{border-left:1px solid var(--line);background:var(--surface);padding:16px 18px;display:grid;gap:12px;align-content:start}
+.drawer h4{margin:0;font:600 14px var(--body)}
+.field{display:grid;gap:4px}
+.field label{font-size:12px;color:var(--muted)}
+.inp{font:12.5px var(--mono);padding:7px 9px;border:1px solid var(--line);border-radius:6px;background:var(--win);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg span{flex:1;text-align:center;padding:6px;font-size:12px}
+.seg .on{background:var(--accent);color:var(--accent-fg);font-weight:600}
+.switch{display:flex;align-items:center;justify-content:space-between}
+.tog{width:34px;height:20px;border-radius:99px;background:var(--accent);position:relative}
+.tog::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--accent-fg)}
+.cap{text-align:center;color:var(--muted);font-size:13px;margin-top:12px}
+
+/* proposal blocks */
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0}
+.card.pick{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.tag{display:inline-block;font:500 11px var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:4px;background:var(--accent);color:var(--accent-fg);margin-bottom:8px}
+.tag.alt{background:var(--sunken);color:var(--muted)}
+.flow{display:grid;gap:0;counter-reset:s}
+.flow li{list-style:none;position:relative;padding:0 0 14px 34px;counter-increment:s}
+.flow li::before{content:counter(s);position:absolute;left:0;top:1px;width:22px;height:22px;border-radius:50%;background:var(--sunken);border:1px solid var(--line);font:500 12px/22px var(--mono);text-align:center;color:var(--accent)}
+.flow{padding:0}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+.tw{overflow-x:auto}
+.del{color:var(--bad)} .keep{color:var(--ok)}
+@media (max-width:640px){.split{grid-template-columns:1fr}.drawer{border-left:0;border-top:1px solid var(--line)}}
+</style>
+
+<div class="col">
+<header>
+  <div class="eyebrow">Предложение · дизайн до реализации</div>
+  <h1>Clipboard Image Saver 2.0</h1>
+  <p class="lead">Одно приложение вместо двух, нормальный интерфейс с галереей сохранённых скриншотов, установщик для Windows и автообновление из GitHub Releases.</p>
+</header>
+
+<section>
+  <h2>Главное окно</h2>
+  <p>Окно отвечает на три вопроса: идёт ли отслеживание, куда сохраняется, что уже сохранено и ушло ли в Google Sheets. Лог прячется вниз, раскрывается по клику.</p>
+</section>
+</div>
+
+<div class="stage" style="margin:20px auto 0;max-width:1060px">
+  <div class="win" role="img" aria-label="Макет главного окна">
+    <div class="titlebar">Clipboard Image Saver<div class="ctl"><span>–</span><span>□</span><span>✕</span></div></div>
+    <div class="update"><span class="icon">↻</span><span>Скачана версия <b>1.0.14</b>. Установится при выходе.</span><button class="btn primary">Перезапустить сейчас</button></div>
+    <div class="top">
+      <span class="brand">Clipboard Image Saver</span>
+      <span class="pill ok"><span class="dot"></span>Отслеживается</span>
+      <span class="pill sync">Google Sheets · подключено</span>
+      <div class="right">
+        <button class="btn"><span class="icon">⚙</span> Настройки</button>
+        <button class="btn primary big">Пауза</button>
+      </div>
+    </div>
+    <div class="folder">
+      <span class="lbl">Папка</span>
+      <span class="path">C:\Users\makar\OneDrive\Pictures\Book of hours (auto)</span>
+      <button class="btn">Недавние ▾</button>
+      <button class="btn">Изменить…</button>
+      <button class="btn">Открыть</button>
+    </div>
+    <div class="stats"><span><b>12</b>за сессию</span><span><b>347</b>в папке</span><span><b>11</b>в Sheets</span><span>последнее: 14:32:08</span></div>
+    <div class="gallery">
+      <div class="shot new"><div class="thumb" style="background:#dfe7ee"><i style="left:6%;top:8%;width:88%;height:10%;background:#2b3b4c"></i><i style="left:6%;top:24%;width:40%;height:60%;background:#f8fafc"></i><i style="left:50%;top:24%;width:44%;height:28%;background:#9fc3d6"></i><i style="left:50%;top:56%;width:44%;height:28%;background:#c9d6e0"></i></div><div class="meta"><span class="name">img_347</span><span class="badge b-wait">отправка</span><span class="t">14:32</span></div></div>
+      <div class="shot"><div class="thumb" style="background:#1d232b"><i style="left:5%;top:10%;width:30%;height:4%;background:#6cc2a0"></i><i style="left:5%;top:20%;width:60%;height:4%;background:#8a96a3"></i><i style="left:5%;top:30%;width:50%;height:4%;background:#8a96a3"></i><i style="left:5%;top:40%;width:70%;height:4%;background:#d79a62"></i><i style="left:5%;top:50%;width:45%;height:4%;background:#8a96a3"></i></div><div class="meta"><span class="name">img_346</span><span class="badge b-ok">в Sheets</span><span class="t">14:29</span></div></div>
+      <div class="shot"><div class="thumb" style="background:linear-gradient(160deg,#c7b28a,#7f6a48)"><i style="left:20%;top:15%;width:60%;height:70%;background:#efe4cc"></i><i style="left:28%;top:25%;width:44%;height:8%;background:#7b2b22"></i><i style="left:28%;top:40%;width:44%;height:36%;background:#c9b48f"></i></div><div class="meta"><span class="name">img_345</span><span class="badge b-ok">в Sheets</span><span class="t">14:21</span></div></div>
+      <div class="shot"><div class="thumb" style="background:#f3f4f6"><i style="left:8%;top:12%;width:84%;height:76%;background:#fff;border:1px solid #d5dbe1"></i><i style="left:14%;top:22%;width:20%;height:56%;background:#e15a4f"></i><i style="left:40%;top:40%;width:20%;height:38%;background:#e9a23b"></i><i style="left:66%;top:30%;width:20%;height:48%;background:#3f86c4"></i></div><div class="meta"><span class="name">img_344</span><span class="badge b-bad">ошибка</span><span class="t">14:05</span></div></div>
+    </div>
+    <details class="log" open>
+      <summary>Журнал · 4 события</summary>
+<pre>14:32:08  <em>Сохранено</em>  img_347.png
+14:29:41  <em>Sheets</em>     img_346 → «Исследованные объекты»!C14
+14:05:12  <s>Ошибка Sheets</s> img_344: не найдена ячейка с «add». Повторить можно из меню картинки.
+13:58:00  Старт отслеживания</pre>
+    </details>
+  </div>
+  <p class="cap">Новый снимок подсвечен рамкой. Клик по карточке открывает картинку, правый клик: «Показать в папке», «Копировать», «Отправить в Sheets повторно».</p>
+</div>
+
+<div class="stage" style="margin:24px auto 0;max-width:1060px">
+  <div class="win" role="img" aria-label="Макет панели настроек">
+    <div class="titlebar">Clipboard Image Saver<div class="ctl"><span>–</span><span>□</span><span>✕</span></div></div>
+    <div class="split">
+      <div style="opacity:.45;padding:16px 20px"><div class="top" style="padding:0 0 14px"><span class="brand">Clipboard Image Saver</span></div><div class="gallery" style="padding:0;grid-template-columns:repeat(2,1fr)"><div class="shot"><div class="thumb" style="background:var(--sunken)"></div></div><div class="shot"><div class="thumb" style="background:var(--sunken)"></div></div><div class="shot"><div class="thumb" style="background:var(--sunken)"></div></div><div class="shot"><div class="thumb" style="background:var(--sunken)"></div></div></div></div>
+      <div class="drawer">
+        <h4>Настройки</h4>
+        <div class="switch"><span>Запускать вместе с Windows</span><span class="tog"></span></div>
+        <div class="switch"><span>При закрытии сворачивать в трей</span><span class="tog"></span></div>
+        <div class="switch"><span>Синхронизация с Google Sheets</span><span class="tog"></span></div>
+        <div class="field"><label>Вход</label><div class="seg"><span>Сервисный аккаунт</span><span class="on">Мой аккаунт Google</span></div></div>
+        <div class="field"><label>client_secret.json</label><div class="inp">C:\Users\makar\Downloads\client_secret_…json</div></div>
+        <div class="field"><label>Таблица (ссылка или ID)</label><div class="inp">1tJbyC7MlMofKfED5Xb54DOJJbmtGcf9Wmz9SphIAaLA</div></div>
+        <div class="field"><label>Лист</label><div class="inp">Исследованные объекты</div></div>
+        <div class="field"><label>Вставлять в ячейку, где есть текст</label><div class="inp">add</div></div>
+        <div class="field"><label>Папка на Google Диске (необязательно)</label><div class="inp">1oh-f41be2qE5QVQapod0RssbJpOb4GYB</div></div>
+        <div style="display:flex;gap:8px;justify-content:space-between;align-items:center"><span class="muted" style="font-size:12px">Версия 1.0.13 · <u>Проверить обновления</u></span><button class="btn primary">Сохранить</button></div>
+      </div>
+    </div>
+  </div>
+  <p class="cap">Настройки выезжают справа поверх галереи. Светлая и тёмная тема следуют системе Windows.</p>
+</div>
+
+<div class="col" style="margin-top:48px">
+<section>
+  <h2>Трей</h2>
+  <p>Закрытие окна сворачивает в трей, отслеживание продолжается. Иконка серая на паузе, цветная при работе. Меню трея: Открыть, Пауза/Старт, Открыть папку, Выход. По желанию: системное уведомление на каждое сохранение (по умолчанию выключено).</p>
+</section>
+
+<section>
+  <h2>На чём строить</h2>
+  <p>Главное решение. Сейчас Electron-версия запускает Python через <code>conda activate && poetry run</code>, то есть работает только на твоей машине. Варианты:</p>
+  <div class="grid2">
+    <div class="card pick"><span class="tag">Рекомендую</span><h3>Только Electron (Node)</h3>
+      <p>Буфер обмена читает сам Electron (<code>clipboard.readImage()</code>), Google Sheets/Drive через пакет <code>googleapis</code>. Python удаляется целиком.</p>
+      <p class="muted">Установщик: electron-builder + NSIS. Автообновление: electron-updater из GitHub Releases, это стандартная связка. Минус: установщик ~80 МБ, логику Google (170 строк) переписываю на JS.</p></div>
+    <div class="card"><span class="tag alt">Альтернатива</span><h3>Только Python (PySide6)</h3>
+      <p>Оставляю текущую логику, меняю Tkinter на Qt с нормальной стилизацией. Установщик Inno Setup.</p>
+      <p class="muted">Автообновление пишу сам: проверка GitHub API, скачать Setup.exe, тихая установка. PyInstaller-сборки часто ловят ложные срабатывания антивирусов.</p></div>
+    <div class="card"><span class="tag alt">Не советую</span><h3>Electron + Python-воркер</h3>
+      <p>Текущий экспериментальный путь. Нужно собирать и Python-exe, и Electron, и связывать их через stdout.</p>
+      <p class="muted">Две сборки, два набора зависимостей, больше мест для поломок.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Установка и обновление</h2>
+  <ol class="flow">
+    <li><b>Установка.</b> <code>ClipboardImageSaver-Setup-1.0.N.exe</code>, ставится в профиль пользователя без прав администратора, ярлык в «Пуск» и на рабочий стол.</li>
+    <li><b>Релиз.</b> Пуш в <code>main</code> → GitHub Actions собирает установщик с версией <code>1.0.&lt;номер сборки&gt;</code> и публикует релиз с <code>latest.yml</code>. Как сейчас: пуш = релиз.</li>
+    <li><b>Проверка.</b> Приложение проверяет GitHub при старте и раз в 4 часа, качает обновление в фоне.</li>
+    <li><b>Применение.</b> Плашка «Скачана версия X». Установится при выходе или по кнопке «Перезапустить сейчас».</li>
+  </ol>
+  <p class="muted">Без подписи кода Windows SmartScreen покажет «Неизвестный издатель» при первой установке. Сертификат стоит денег, это можно добавить позже. Обновления работают и без подписи.</p>
+</section>
+
+<section>
+  <h2>Уборка в репозитории</h2>
+  <div class="tw"><table>
+    <tr><th>Что</th><th>Действие</th></tr>
+    <tr><td><code>clipboard_manager/</code>, <code>main.py</code>, <code>pyproject.toml</code>, <code>poetry.lock</code>, <code>scripts/build_exe.ps1</code></td><td class="del">Удалить (при варианте Electron)</td></tr>
+    <tr><td><code>electron-app/</code></td><td class="keep">Перенести в корень, переписать</td></tr>
+    <tr><td><code>_google_sync.json</code>, <code>google_token.json</code>, <code>folder_history.json</code>, <code>__pycache__/</code> в корне</td><td class="del">Убрать из папки проекта. Настройки и токен переезжают в <code>%APPDATA%\Clipboard Image Saver</code>; текущие настройки перенесу при первом запуске</td></tr>
+    <tr><td>Незакоммиченные правки <code>google_sync.py</code> (повторы, обновление токена)</td><td class="keep">Перенести то же поведение в JS-версию</td></tr>
+    <tr><td><code>.github/workflows/build.yml</code></td><td class="keep">Переписать: тесты + сборка + публикация</td></tr>
+    <tr><td><code>README.md</code>, скриншоты в <code>docs/</code></td><td class="keep">Обновить под новую версию</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>Как я буду тестировать</h2>
+  <ul>
+    <li>Юнит-тесты на нумерацию файлов, сравнение картинок, настройки, поиск ячейки в таблице (<code>node --test</code>, без лишних библиотек).</li>
+    <li>Запуск настоящего приложения через Playwright: кладу картинку в буфер обмена, проверяю, что файл появился и карточка возникла в галерее. Скриншоты окна в обеих темах.</li>
+    <li>Локальная сборка установщика, установка, запуск, удаление.</li>
+    <li>Автообновление: ставлю версию 1.0.0, поднимаю локальный сервер с 1.0.1 и проверяю, что приложение скачало и поставило обновление.</li>
+    <li>Google-синхронизацию на твоей таблице проверю только с твоего разрешения: она пишет в реальную таблицу и Диск.</li>
+  </ul>
+</section>
+</div>

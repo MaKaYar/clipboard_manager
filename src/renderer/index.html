@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' file: data:; style-src 'self' 'unsafe-inline'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipboard Image Saver</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <div class="update" id="update" hidden>
+    <span class="icon" aria-hidden="true">↻</span><span id="updateText"></span>
+    <button class="btn primary" id="updateInstall" hidden>Перезапустить сейчас</button>
+  </div>
+
+  <header class="top">
+    <span class="brand">Clipboard Image Saver</span>
+    <span class="pill" id="statusPill"><span class="dot"></span><span id="statusText">…</span></span>
+    <span class="pill sync" id="googlePill"></span>
+    <div class="right">
+      <button class="btn" id="openSettings" aria-haspopup="dialog"><span class="icon" aria-hidden="true">⚙</span> Настройки</button>
+      <button class="btn primary big" id="toggleRun">Старт</button>
+    </div>
+  </header>
+
+  <div class="folder" id="folderBar">
+    <span class="lbl">Папка</span>
+    <span class="path" id="folderPath"></span>
+    <div class="menu-wrap">
+      <button class="btn" id="recentBtn" aria-haspopup="menu" aria-expanded="false">Недавние ▾</button>
+      <div class="menu" id="recentMenu" role="menu" hidden></div>
+    </div>
+    <button class="btn" id="changeFolder">Изменить…</button>
+    <button class="btn" id="openFolder">Открыть</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <main class="content">
+    <div class="gallery" id="gallery"></div>
+    <div class="empty" id="emptyNoFolder" hidden>
+      <p>Выберите папку, куда сохранять картинки</p>
+      <button class="btn primary big" id="pickFolderEmpty">Выбрать папку…</button>
+    </div>
+    <div class="empty" id="emptyFolder" hidden>
+      <p>Скопируйте картинку или сделайте скриншот (Win+Shift+S) — она появится здесь</p>
+    </div>
+  </main>
+
+  <details class="log" id="log">
+    <summary id="logSummary">Журнал</summary>
+    <pre id="logBody"></pre>
+  </details>
+</div>
+
+<div class="menu ctx" id="ctxMenu" role="menu" hidden>
+  <button role="menuitem" data-act="open">Открыть</button>
+  <button role="menuitem" data-act="show">Показать в папке</button>
+  <button role="menuitem" data-act="copy">Копировать</button>
+  <button role="menuitem" data-act="retry">Отправить в Sheets повторно</button>
+</div>
+
+<div class="backdrop" id="backdrop" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle" hidden>
+  <form id="settingsForm">
+    <div class="drawer-head">
+      <h2 id="drawerTitle">Настройки</h2>
+      <button type="button" class="btn ghost" id="closeSettings" aria-label="Закрыть">✕</button>
+    </div>
+    <label class="switch"><span>Запускать вместе с Windows</span><input type="checkbox" role="switch" name="launchAtLogin"></label>
+    <label class="switch"><span>При закрытии сворачивать в трей</span><input type="checkbox" role="switch" name="minimizeToTray"></label>
+    <label class="switch"><span>Уведомление при сохранении</span><input type="checkbox" role="switch" name="notifyOnSave"></label>
+    <label class="switch"><span>Синхронизация с Google Sheets</span><input type="checkbox" role="switch" name="enabled" id="gEnabled"></label>
+
+    <fieldset id="gFields">
+      <div class="field">
+        <span class="flabel" id="authLbl">Вход</span>
+        <div class="seg" role="radiogroup" aria-labelledby="authLbl">
+          <label><input type="radio" name="authMode" value="service"><span>Сервисный аккаунт</span></label>
+          <label><input type="radio" name="authMode" value="oauth"><span>Мой аккаунт Google</span></label>
+        </div>
+      </div>
+      <div class="field" id="fileField">
+        <label class="flabel" for="fileInput" id="fileLbl">client_secret.json</label>
+        <div class="row">
+          <input class="inp" id="fileInput" readonly placeholder="Файл не выбран">
+          <button type="button" class="btn" id="pickFile">Выбрать…</button>
+        </div>
+      </div>
+      <div class="field"><label class="flabel" for="fSheetId">Таблица (ссылка или ID)</label><input class="inp" id="fSheetId" name="spreadsheetId" spellcheck="false"></div>
+      <div class="field"><label class="flabel" for="fSheet">Лист</label><input class="inp" id="fSheet" name="sheetName" spellcheck="false"></div>
+      <div class="field"><label class="flabel" for="fTerm">Вставлять в ячейку, где есть текст</label><input class="inp" id="fTerm" name="searchTerm" spellcheck="false"></div>
+      <div class="field"><label class="flabel" for="fDrive">Папка на Google Диске (необязательно)</label><input class="inp" id="fDrive" name="driveFolderId" spellcheck="false"></div>
+    </fieldset>
+
+    <div class="drawer-foot">
+      <span class="muted small">Версия <span id="version"></span> · <button type="button" class="link" id="checkUpdates">Проверить обновления</button></span>
+      <button type="submit" class="btn primary" id="saveBtn">Сохранить</button>
+    </div>
+    <p class="result small" id="saveResult" role="status"></p>
+    <p class="muted small result" id="updateInfo" role="status"></p>
+  </form>
+</aside>
+
+<script src="renderer.js"></script>
+</body>
+</html>

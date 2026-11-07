@@ -1,60 +1,45 @@
-name: build-and-release
+name: build
 
 permissions:
-  contents: write
+  contents: write # release publish; the token is not persisted to disk for the npm/test steps (see checkout)
 
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
 
 jobs:
-  windows-build:
+  build:
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
         with:
-          python-version: "3.11"
+          persist-credentials: false
 
-      - name: Install Poetry
-        uses: abatilo/actions-poetry@v4
+      - uses: actions/setup-node@v4
         with:
-          poetry-version: "1.8.3"
+          node-version: 22
+          cache: npm
 
-      - name: Install dependencies
-        run: poetry install --no-interaction --with dev
+      - run: npm ci
 
-      - name: Build Windows executable
-        run: poetry run pyinstaller --noconfirm --windowed --name ClipboardImageSaver clipboard_manager/__main__.py
+      - run: npm test
 
-      - name: Zip build output
-        run: Compress-Archive -Path dist/ClipboardImageSaver/* -DestinationPath dist/ClipboardImageSaver.zip -Force
+      - name: Build and publish release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          npm version 1.0.${{ github.run_number }} --no-git-tag-version
+          npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload artifact
+      - name: Build installer
+        if: github.event_name == 'pull_request'
+        run: npx electron-builder --win --publish never
+
+      - name: Upload installer
+        if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: ClipboardImageSaver-windows
-          path: dist/ClipboardImageSaver.zip
-
-  release:
-    needs: windows-build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: ClipboardImageSaver-windows
-          path: artifacts
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ github.run_number }}
-          name: Release ${{ github.run_number }}
-          files: artifacts/ClipboardImageSaver.zip
-
+          name: ClipboardImageSaver-Setup
+          path: dist/*.exe
