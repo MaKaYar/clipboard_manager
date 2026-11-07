@@ -41,7 +41,7 @@
       "provider": "github",
       "owner": "MaKaYar",
       "repo": "clipboard_manager",
-      "releaseType": "release"
+      "releaseType": "draft"
     },
     "electronFuses": {
       "runAsNode": false,
