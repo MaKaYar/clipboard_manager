@@ -29,12 +29,14 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
           npm version 1.0.${{ github.run_number }} --no-git-tag-version
+          gh release create v1.0.${{ github.run_number }} --draft --title 1.0.${{ github.run_number }} --target ${{ github.sha }} --notes "" --repo ${{ github.repository }}
           npx electron-builder --win --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # electron-builder uploads assets in parallel; publishing directly races on tag
-      # creation (422), so it uploads to a draft and this step publishes it.
+      # electron-builder uploads assets in parallel and each upload creates the release
+      # if it can't find one (422 / duplicate drafts). The draft is created up front
+      # above, so all uploads land in it; this step publishes it.
       - name: Publish release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: gh release edit v1.0.${{ github.run_number }} --draft=false --latest --repo ${{ github.repository }}
